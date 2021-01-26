@@ -1,0 +1,18 @@
+# C2 wrapper mbedtls 2.25.0
+
+[library]
+language = "C"
+type = [ "static", "dynamic" ]
+linkname = "mbedtls"
+
+[[deps]]
+name = "libc"
+type = "dynamic"
+
+[[deps]]
+name = "math"
+type = "dynamic"
+
+[[module]]
+name = "mbedtls"
+
