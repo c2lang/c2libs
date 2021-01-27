@@ -2,6 +2,31 @@ module mbedtls;
 
 import c2 local;
 
+// ------ asn1.h ------
+type Asn1_buf struct {
+    c_int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
+    c_size len;             /**< ASN1 length, in octets. */
+    c_uchar *p;       /**< ASN1 data, e.g. in ASCII. */
+} @(cname="mbedtls_asn1_buf")
+
+type Asn1_named_data struct {
+    Asn1_buf oid;                   /**< The object identifier. */
+    Asn1_buf val;                   /**< The named value. */
+    Asn1_named_data *next;  /**< The next entry in the sequence. */
+    c_uchar next_merged;      /**< Merge next item into the current one? */
+} @(cname="mbedtls_asn1_named_data")
+
+type Asn1_sequence struct {
+    Asn1_buf buf;                   /**< Buffer containing the given ASN.1 item. */
+    Asn1_sequence *next;    /**< The next entry in the sequence. */
+} @(cname="mbedtls_asn1_sequence")
+
+
+// ------ error.h ------
+
+func void strerror(c_int ret, char *buf, c_size buflen) @(cname="mbedtls_strerror");
+
+
 // ------ bignum.h ------
 
 type Mpi_uint c_ulonglong;
@@ -68,26 +93,30 @@ type Pk_info_t struct {} @(opaque, cname="mbedtls_pk_info_t")
 
 type Pk_context struct
 {
-    const Pk_info_t *   pk_info; /**< Public key information         */
-    void *                      pk_ctx;  /**< Underlying public key context  */
+    const Pk_info_t* pk_info; /**< Public key information         */
+    void *           pk_ctx;  /**< Underlying public key context  */
 } @(cname="mbedtls_pk_context")
+
+static_assert(16, sizeof(Pk_context));
 
 func void pk_init(Pk_context* ctx) @(cname="mbedtls_pk_init");
 
-// ------ x509_ctr.h ------
+func void pk_free( Pk_context *ctx) @(cname="mbedtls_pk_free");
 
-// TODO
-//typedef mbedtls_asn1_buf mbedtls_x509_buf;
-type X509_buf struct {} @(cname="mbedtls_x509_buf")
 
-// TODO
-//typedef mbedtls_asn1_named_data mbedtls_x509_name;
-type X509_name struct {} @(cname="mbedtls_x509_name")
+// ------ x509_crt.h ------
 
-// TODO
-//typedef mbedtls_asn1_sequence mbedtls_x509_sequence;
-type X509_sequence struct {} @(cname="mbedtls_x509_sequence")
+type X509_buf Asn1_buf @(cname="mbedtls_x509_buf");
 
+static_assert(24, sizeof(X509_buf));
+
+type X509_name Asn1_named_data @(cname="mbedtls_x509_name");
+
+static_assert(64, sizeof(X509_name));
+
+type X509_sequence Asn1_sequence @(cname="mbedtls_x509_sequence");
+
+static_assert(32, sizeof(X509_sequence));
 
 type X509_time struct
 {
@@ -197,9 +226,27 @@ type X509_crt struct {
     X509_crt *next;     /**< Next certificate in the CA-chain. */
 } @(cname="mbedtls_x509_crt")
 
+static_assert(616, sizeof(X509_crt));
+
 func void x509_crt_init(X509_crt* crt) @(cname="mbedtls_x509_crt_init");
 
 func c_int x509_crt_parse_path( X509_crt *chain, const char *path ) @(cname="mbedtls_x509_crt_parse_path");
+
+func c_int x509_crt_parse_file( X509_crt *chain, const char *path) @(cname="mbedtls_x509_crt_parse_file");
+
+func c_int x509_crt_parse( X509_crt *chain, const c_uchar *buf, c_size buflen ) @(cname="mbedtls_x509_crt_parse");
+
+func void x509_crt_free(X509_crt *crt) @(cname="mbedtls_x509_crt_free");
+
+
+// ------ ssl_tls.h ------
+
+func void ssl_init( Ssl_context *ssl ) @(cname="mbedtls_ssl_init");
+
+func void ssl_config_init( Ssl_config *conf ) @(cname="mbedtls_ssl_config_init");
+
+
+
 
 // ------ ssl.h ------
 
@@ -502,6 +549,8 @@ type Ssl_config struct {
 #endif
 } @(cname="mbedtls_ssl_config")
 
+static_assert(384, sizeof(Ssl_config));
+
 type Ssl_handshake_params struct {} @(opaque, cname="mbedtls_ssl_handshake_params")
 
 type Ssl_transform struct {} @(opaque, cname="mbedtls_ssl_transform")
@@ -735,6 +784,7 @@ type Ssl_context struct {
 //#endif /* MBEDTLS_SSL_DTLS_CONNECTION_ID */
 } @(cname="mbedtls_ssl_context")
 
+static_assert(472, sizeof(Ssl_context));
 
 
 // ------ aes.h ------
@@ -793,6 +843,7 @@ type Ctr_drbg_context struct {
 //#endif
 } @(cname="mbedtls_ctr_drbg_context")
 
+static_assert(344, sizeof(Ctr_drbg_context));
 
 type Entropy_seed_f func c_int(void *, c_uchar *, c_size);
 
@@ -802,6 +853,7 @@ func c_int ctr_drbg_seed( Ctr_drbg_context *ctx,
                           const c_uchar *custom,
                           c_size len) @(cname="mbedtls_ctr_drbg_seed");
 
+func void ctr_drbg_init( Ctr_drbg_context *ctx ) @(cname="mbedtls_ctr_drbg_init");
 
 
 // ------ sha512.h ------
@@ -851,6 +903,8 @@ type Entropy_context struct {
 //    c_int initial_entropy_run;
 //#endif
 } @(cname="mbedtls_entropy_context")
+
+static_assert(1032, sizeof(Entropy_context));
 
 func void entropy_init( Entropy_context *ctx ) @(cname="mbedtls_entropy_init");
 
