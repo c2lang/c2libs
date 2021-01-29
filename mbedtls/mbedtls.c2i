@@ -2,6 +2,26 @@ module mbedtls;
 
 import c2 local;
 
+// ------ timing.h ------
+
+type Timing_hr_time struct
+{
+    c_uchar[32] opaque;
+} @(cname="mbedtls_timing_hr_time")
+
+type Timing_delay_context struct
+{
+    Timing_hr_time   timer;
+    u32              int_ms;
+    u32              fin_ms;
+} @(cname="mbedtls_timing_delay_context")
+
+
+func void timing_set_delay( void *data, u32 int_ms, u32 fin_ms ) @(cname="mbedtls_timing_set_delay");
+func c_int timing_get_delay(void *data) @(cname="mbedtls_timing_get_delay");
+
+
+
 // ------ net_sockets.h ------
 
 const c_int NET_PROTO_TCP  = 0; /**< The TCP transport protocol */
@@ -16,8 +36,20 @@ type Net_context struct {
 } @(cname="mbedtls_net_context")
 
 func void net_init( Net_context *ctx ) @(cname="mbedtls_net_init");
+
 func c_int net_connect( Net_context *ctx, const char *host, const char *port, c_int proto ) @(cname="mbedtls_net_connect");
 
+func c_int net_set_block( Net_context *ctx) @(cname="mbedtls_net_set_block");
+func c_int net_set_nonblock( Net_context *ctx) @(cname="net_set_nonblock");
+
+type Verify_fn func c_int(void*, X509_crt *, c_int, c_uint*);
+func void ssl_conf_verify(Ssl_config *conf, Verify_fn f_vrfy, void *p_vrfy) @(cname="mbedtls_ssl_conf_verify");
+
+func c_int net_send(void *ctx, const c_uchar *buf, c_size len) @(cname="mbedtls_net_send");
+
+func c_int net_recv(void *ctx, c_uchar *buf, c_size len) @(cname="mbedtls_net_recv");
+
+func c_int net_recv_timeout( void *ctx, c_uchar *buf, c_size len, c_uint timeout) @(cname="mbedtls_net_recv_timeout");
 
 
 
@@ -121,6 +153,30 @@ static_assert(16, sizeof(Pk_context));
 func void pk_init(Pk_context* ctx) @(cname="mbedtls_pk_init");
 
 func void pk_free( Pk_context *ctx) @(cname="mbedtls_pk_free");
+
+
+// ------ x509.h ------
+
+const c_int ERR_X509_FEATURE_UNAVAILABLE              = -0x2080;
+const c_int ERR_X509_UNKNOWN_OID                      = -0x2100;
+const c_int ERR_X509_INVALID_FORMAT                   = -0x2180;
+const c_int ERR_X509_INVALID_VERSION                  = -0x2200;
+const c_int ERR_X509_INVALID_SERIAL                   = -0x2280;
+const c_int ERR_X509_INVALID_ALG                      = -0x2300;
+const c_int ERR_X509_INVALID_NAME                     = -0x2380;
+const c_int ERR_X509_INVALID_DATE                     = -0x2400;
+const c_int ERR_X509_INVALID_SIGNATURE                = -0x2480;
+const c_int ERR_X509_INVALID_EXTENSIONS               = -0x2500;
+const c_int ERR_X509_UNKNOWN_VERSION                  = -0x2580;
+const c_int ERR_X509_UNKNOWN_SIG_ALG                  = -0x2600;
+const c_int ERR_X509_SIG_MISMATCH                     = -0x2680;
+const c_int ERR_X509_CERT_VERIFY_FAILED               = -0x2700;
+const c_int ERR_X509_CERT_UNKNOWN_FORMAT              = -0x2780;
+const c_int ERR_X509_BAD_INPUT_DATA                   = -0x2800;
+const c_int ERR_X509_ALLOC_FAILED                     = -0x2880;
+const c_int ERR_X509_FILE_IO_ERROR                    = -0x2900;
+const c_int ERR_X509_BUFFER_TOO_SMALL                 = -0x2980;
+const c_int ERR_X509_FATAL_ERROR                      = -0x3000;
 
 
 // ------ x509_crt.h ------
@@ -257,6 +313,10 @@ func c_int x509_crt_parse( X509_crt *chain, const c_uchar *buf, c_size buflen ) 
 
 func void x509_crt_free(X509_crt *crt) @(cname="mbedtls_x509_crt_free");
 
+func c_int x509_crt_info(char *buf, c_size size, const char *prefix, const X509_crt *crt) @(cname="mbedtls_x509_crt_info");
+
+func c_int x509_crt_verify_info(char *buf, c_size size, const char *prefix, c_uint flags) @(cname="mbedtls_x509_crt_verify_info");
+
 
 // ------ ssl_tls.h ------
 
@@ -266,8 +326,100 @@ func void ssl_config_init( Ssl_config *conf ) @(cname="mbedtls_ssl_config_init")
 
 func c_int ssl_config_defaults( Ssl_config *conf, c_int endpoint, c_int transport, c_int preset ) @(cname="mbedtls_ssl_config_defaults");
 
+func c_int ssl_conf_max_frag_len( Ssl_config *conf, c_uchar mfl_code) @(cname="mbedtls_ssl_conf_max_frag_len");
+
+type Rng_fn func c_int(void *, c_uchar *, c_size);
+
+func void ssl_conf_rng( Ssl_config *conf, Rng_fn f_rng, void *p_rng) @(cname="mbedtls_ssl_conf_rng");
+
+func void ssl_conf_read_timeout(Ssl_config *conf, c_uint timeout) @(cname="mbedtls_ssl_conf_read_timeout");
+
+func void ssl_conf_session_tickets( Ssl_config *conf, c_int use_tickets) @(cname="mbedtls_ssl_conf_session_tickets");
+
+func void ssl_conf_renegotiation(Ssl_config *conf, c_int renegotiation) @(cname="mbedtls_ssl_conf_renegotiation");
+
+func void ssl_conf_ca_chain( Ssl_config *conf, X509_crt *ca_chain, X509_crl *ca_crl) @(cname="mbedtls_ssl_conf_ca_chain");
+
+func c_int ssl_conf_own_cert( Ssl_config *conf, X509_crt *own_cert, Pk_context *pk_key) @(cname="mbedtls_ssl_conf_own_cert");
+
+func c_int ssl_setup( Ssl_context *ssl, const Ssl_config *conf) @(cname="mbedtls_ssl_setup");
+
+func c_int ssl_set_hostname( Ssl_context *ssl, const char *hostname) @(cname="mbedtls_ssl_set_hostname");
+
+func void ssl_set_bio( Ssl_context *ssl, void *p_bio, Ssl_send_t f_send, Ssl_recv_t f_recv, Ssl_recv_timeout_t f_recv_timeout ) @(cname="mbedtls_ssl_set_bio");
+
+func void ssl_set_timer_cb(Ssl_context *ssl, void *p_timer, Ssl_set_timer_t f_set_timer, Ssl_get_timer_t f_get_timer) @(cname="mbedtls_ssl_set_timer_cb");
+
+func c_int ssl_handshake(Ssl_context *ssl) @(cname="mbedtls_ssl_handshake");
+
+func const char* ssl_get_version( const Ssl_context *ssl) @(cname="mbedtls_ssl_get_version");
+
+func const char* ssl_get_ciphersuite(const Ssl_context *ssl) @(cname="mbedtls_ssl_get_ciphersuite");
+
 
 // ------ ssl.h ------
+/*
+ * SSL Error codes
+ */
+// Note: removed prefix ERR_SSL_ (otherwise too long)
+const c_int FEATURE_UNAVAILABLE               = -0x7080;  /**< The requested feature is not available. */
+const c_int BAD_INPUT_DATA                    = -0x7100;  /**< Bad input parameters to function. */
+const c_int INVALID_MAC                       = -0x7180;  /**< Verification of the message MAC failed. */
+const c_int INVALID_RECORD                    = -0x7200;  /**< An invalid SSL record was received. */
+const c_int CONN_EOF                          = -0x7280;  /**< The connection indicated an EOF. */
+const c_int UNKNOWN_CIPHER                    = -0x7300;  /**< An unknown cipher was received. */
+const c_int NO_CIPHER_CHOSEN                  = -0x7380;  /**< The server has no ciphersuites in common with the client. */
+const c_int NO_RNG                            = -0x7400;  /**< No RNG was provided to the SSL module. */
+const c_int NO_CLIENT_CERTIFICATE             = -0x7480;  /**< No client certification received from the client, but required by the authentication mode. */
+const c_int CERTIFICATE_TOO_LARGE             = -0x7500;  /**< Our own certificate(s) is/are too large to send in an SSL message. */
+const c_int CERTIFICATE_REQUIRED              = -0x7580;  /**< The own certificate is not set, but needed by the server. */
+const c_int PRIVATE_KEY_REQUIRED              = -0x7600;  /**< The own private key or pre-shared key is not set, but needed. */
+const c_int CA_CHAIN_REQUIRED                 = -0x7680;  /**< No CA Chain is set, but required to operate. */
+const c_int UNEXPECTED_MESSAGE                = -0x7700;  /**< An unexpected message was received from our peer. */
+const c_int FATAL_ALERT_MESSAGE               = -0x7780;  /**< A fatal alert message was received from our peer. */
+const c_int PEER_VERIFY_FAILED                = -0x7800;  /**< Verification of our peer failed. */
+const c_int PEER_CLOSE_NOTIFY                 = -0x7880;  /**< The peer notified us that the connection is going to be closed. */
+const c_int BAD_HS_CLIENT_HELLO               = -0x7900;  /**< Processing of the ClientHello handshake message failed. */
+const c_int BAD_HS_SERVER_HELLO               = -0x7980;  /**< Processing of the ServerHello handshake message failed. */
+const c_int BAD_HS_CERTIFICATE                = -0x7A00;  /**< Processing of the Certificate handshake message failed. */
+const c_int BAD_HS_CERTIFICATE_REQUEST        = -0x7A80;  /**< Processing of the CertificateRequest handshake message failed. */
+const c_int BAD_HS_SERVER_KEY_EXCHANGE        = -0x7B00;  /**< Processing of the ServerKeyExchange handshake message failed. */
+const c_int BAD_HS_SERVER_HELLO_DONE          = -0x7B80;  /**< Processing of the ServerHelloDone handshake message failed. */
+const c_int BAD_HS_CLIENT_KEY_EXCHANGE        = -0x7C00;  /**< Processing of the ClientKeyExchange handshake message failed. */
+const c_int BAD_HS_CLIENT_KEY_EXCHANGE_RP     = -0x7C80;  /**< Processing of the ClientKeyExchange handshake message failed in DHM / ECDH Read Public. */
+const c_int BAD_HS_CLIENT_KEY_EXCHANGE_CS     = -0x7D00;  /**< Processing of the ClientKeyExchange handshake message failed in DHM / ECDH Calculate Secret. */
+const c_int BAD_HS_CERTIFICATE_VERIFY         = -0x7D80;  /**< Processing of the CertificateVerify handshake message failed. */
+const c_int BAD_HS_CHANGE_CIPHER_SPEC         = -0x7E00;  /**< Processing of the ChangeCipherSpec handshake message failed. */
+const c_int BAD_HS_FINISHED                   = -0x7E80;  /**< Processing of the Finished handshake message failed. */
+const c_int ALLOC_FAILED                      = -0x7F00;  /**< Memory allocation failed */
+const c_int HW_ACCEL_FAILED                   = -0x7F80;  /**< Hardware acceleration function returned with error */
+const c_int HW_ACCEL_FALLTHROUGH              = -0x6F80;  /**< Hardware acceleration function skipped / left alone data */
+const c_int COMPRESSION_FAILED                = -0x6F00;  /**< Processing of the compression / decompression failed */
+const c_int BAD_HS_PROTOCOL_VERSION           = -0x6E80;  /**< Handshake protocol not within min/max boundaries */
+const c_int BAD_HS_NEW_SESSION_TICKET         = -0x6E00;  /**< Processing of the NewSessionTicket handshake message failed. */
+const c_int SESSION_TICKET_EXPIRED            = -0x6D80;  /**< Session ticket has expired. */
+const c_int PK_TYPE_MISMATCH                  = -0x6D00;  /**< Public key type mismatch (eg, asked for RSA key exchange and presented EC key) */
+const c_int UNKNOWN_IDENTITY                  = -0x6C80;  /**< Unknown identity received (eg, PSK identity) */
+const c_int INTERNAL_ERROR                    = -0x6C00;  /**< Internal error (eg, unexpected failure in lower-level module) */
+const c_int COUNTER_WRAPPING                  = -0x6B80;  /**< A counter would wrap (eg, too many messages exchanged). */
+const c_int WAITING_SERVER_HELLO_RENEGO       = -0x6B00;  /**< Unexpected message at ServerHello in renegotiation. */
+const c_int HELLO_VERIFY_REQUIRED             = -0x6A80;  /**< DTLS client must retry for hello verification */
+const c_int BUFFER_TOO_SMALL                  = -0x6A00;  /**< A buffer is too small to receive or write a message */
+const c_int NO_USABLE_CIPHERSUITE             = -0x6980;  /**< None of the common ciphersuites is usable (eg, no suitable certificate, see debug messages). */
+const c_int WANT_READ                         = -0x6900;  /**< No data of requested type currently available on underlying transport. */
+const c_int WANT_WRITE                        = -0x6880;  /**< Connection requires a write call. */
+const c_int TIMEOUT                           = -0x6800;  /**< The operation timed out. */
+const c_int CLIENT_RECONNECT                  = -0x6780;  /**< The client initiated a reconnect from the same port. */
+const c_int UNEXPECTED_RECORD                 = -0x6700;  /**< Record header looks valid but is not expected. */
+const c_int NON_FATAL                         = -0x6680;  /**< The alert message received indicates a non-fatal error. */
+const c_int INVALID_VERIFY_HASH               = -0x6600;  /**< Couldn't set the hash for verifying CertificateVerify */
+const c_int CONTINUE_PROCESSING               = -0x6580;  /**< Internal-only message signaling that further message-processing should be done */
+const c_int ASYNC_IN_PROGRESS                 = -0x6500;  /**< The asynchronous operation is not completed yet. */
+const c_int EARLY_MESSAGE                     = -0x6480;  /**< Internal-only message signaling that a message arrived early. */
+const c_int UNEXPECTED_CID                    = -0x6000;  /**< An encrypted DTLS-frame with an unexpected CID was received. */
+const c_int VERSION_MISMATCH                  = -0x5F00;  /**< An operation failed due to an unexpected version or configuration. */
+const c_int CRYPTO_IN_PROGRESS                = -0x7000;  /**< A cryptographic operation is in progress. Try again later. */
+const c_int BAD_CONFIG                        = -0x5E80;  /**< Invalid value in SSL config */
 
 const c_int SSL_IS_CLIENT = 0;
 const c_int SSL_IS_SERVER = 1;
@@ -278,9 +430,24 @@ const c_int SSL_TRANSPORT_DATAGRAM =1;
 const c_int SSL_PRESET_DEFAULT = 0;
 const c_int SSL_PRESET_SUITEB  = 2;
 
+const c_int SSL_MAX_FRAG_LEN_NONE         = 0;   /*!< don't use this extension   */
+const c_int SSL_MAX_FRAG_LEN_512          = 1;   /*!< MaxFragmentLength 2^9      */
+const c_int SSL_MAX_FRAG_LEN_1024         = 2;   /*!< MaxFragmentLength 2^10     */
+const c_int SSL_MAX_FRAG_LEN_2048         = 3;   /*!< MaxFragmentLength 2^11     */
+const c_int SSL_MAX_FRAG_LEN_4096         = 4;   /*!< MaxFragmentLength 2^12     */
+const c_int SSL_MAX_FRAG_LEN_INVALID      = 5;   /*!< first invalid value        */
+
+const c_int SSL_SESSION_TICKETS_DISABLED   = 0;
+const c_int SSL_SESSION_TICKETS_ENABLED    = 1;
+
+const c_int SSL_RENEGOTIATION_DISABLED    = 0;
+const c_int SSL_RENEGOTIATION_ENABLED     = 1;
+
+
 type Ssl_send_t func c_int(void *ctx, const c_char *buf, c_size len) @(cname="mbedtls_ssl_send_t");
 type Ssl_recv_t func c_int(void *ctx, c_uchar *buf, c_size len) @(cname="mbedtls_ssl_recv_t");
 type Ssl_recv_timeout_t func c_int(void *ctx, c_uchar *buf, c_size len, c_uint timeout) @(cname="mbedtls_ssl_recv_timeout_t");
+
 
 type Ssl_key_cert struct {} @(opaque, cname="mbedtls_ssl_key_cert")
 
@@ -641,8 +808,7 @@ type Ssl_context struct {
 
     Ssl_send_t *f_send; /*!< Callback for network send */
     Ssl_recv_t *f_recv; /*!< Callback for network receive */
-    Ssl_recv_timeout_t *f_recv_timeout;
-                                /*!< Callback for network receive with timeout */
+    Ssl_recv_timeout_t f_recv_timeout; /*!< Callback for network receive with timeout */
 
     void *p_bio;                /*!< context for I/O operations   */
 
@@ -883,6 +1049,10 @@ func c_int ctr_drbg_seed( Ctr_drbg_context *ctx,
 
 func void ctr_drbg_init( Ctr_drbg_context *ctx ) @(cname="mbedtls_ctr_drbg_init");
 
+func c_int ctr_drbg_random( void *p_rng, c_uchar *output, c_size output_len) @(cname="mbedtls_ctr_drbg_random");
+
+type Dbg_fn func void(void*, c_int, const char *, c_int, const char *);
+func void ssl_conf_dbg( Ssl_config *conf, Dbg_fn f_dbg, void  *p_dbg ) @(cname="mbedtls_ssl_conf_dbg");
 
 // ------ sha512.h ------
 
