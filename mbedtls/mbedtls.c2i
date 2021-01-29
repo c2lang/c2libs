@@ -2,6 +2,11 @@ module mbedtls;
 
 import c2 local;
 
+// ------ ssl_msg.h ------
+
+func c_int ssl_get_record_expansion( const Ssl_context *ssl ) @(cname="mbedtls_ssl_get_record_expansion");
+
+
 // ------ timing.h ------
 
 type Timing_hr_time struct
@@ -355,6 +360,11 @@ func c_int ssl_handshake(Ssl_context *ssl) @(cname="mbedtls_ssl_handshake");
 func const char* ssl_get_version( const Ssl_context *ssl) @(cname="mbedtls_ssl_get_version");
 
 func const char* ssl_get_ciphersuite(const Ssl_context *ssl) @(cname="mbedtls_ssl_get_ciphersuite");
+
+func c_size ssl_get_input_max_frag_len( const Ssl_context *ssl ) @(cname="mbedtls_ssl_get_input_max_frag_len");
+
+func c_size ssl_get_output_max_frag_len( const Ssl_context *ssl) @(cname="mbedtls_ssl_get_output_max_frag_len");
+
 
 
 // ------ ssl.h ------
