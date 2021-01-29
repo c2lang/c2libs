@@ -2,6 +2,25 @@ module mbedtls;
 
 import c2 local;
 
+// ------ net_sockets.h ------
+
+const c_int NET_PROTO_TCP  = 0; /**< The TCP transport protocol */
+const c_int NET_PROTO_UDP  = 1; /**< The UDP transport protocol */
+
+const c_int NET_POLL_READ  = 1; /**< Used in \c mbedtls_net_poll to check for pending data  */
+const c_int NET_POLL_WRITE = 2; /**< Used in \c mbedtls_net_poll to check if write possible */
+
+
+type Net_context struct {
+    c_int fd;             /**< The underlying file descriptor                 */
+} @(cname="mbedtls_net_context")
+
+func void net_init( Net_context *ctx ) @(cname="mbedtls_net_init");
+func c_int net_connect( Net_context *ctx, const char *host, const char *port, c_int proto ) @(cname="mbedtls_net_connect");
+
+
+
+
 // ------ asn1.h ------
 type Asn1_buf struct {
     c_int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
@@ -245,10 +264,19 @@ func void ssl_init( Ssl_context *ssl ) @(cname="mbedtls_ssl_init");
 
 func void ssl_config_init( Ssl_config *conf ) @(cname="mbedtls_ssl_config_init");
 
-
+func c_int ssl_config_defaults( Ssl_config *conf, c_int endpoint, c_int transport, c_int preset ) @(cname="mbedtls_ssl_config_defaults");
 
 
 // ------ ssl.h ------
+
+const c_int SSL_IS_CLIENT = 0;
+const c_int SSL_IS_SERVER = 1;
+
+const c_int SSL_TRANSPORT_STREAM  = 0;
+const c_int SSL_TRANSPORT_DATAGRAM =1;
+
+const c_int SSL_PRESET_DEFAULT = 0;
+const c_int SSL_PRESET_SUITEB  = 2;
 
 type Ssl_send_t func c_int(void *ctx, const c_char *buf, c_size len) @(cname="mbedtls_ssl_send_t");
 type Ssl_recv_t func c_int(void *ctx, c_uchar *buf, c_size len) @(cname="mbedtls_ssl_recv_t");
